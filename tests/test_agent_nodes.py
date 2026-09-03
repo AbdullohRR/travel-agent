@@ -4,6 +4,8 @@ and graceful handling of missing/invalid tool arguments (the slot-filling trigge
 tools_node()/route_after_agent() directly against constructed state — no live Ollama call — so
 they're fast and deterministic.
 """
+from datetime import date, timedelta
+
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 
@@ -11,6 +13,12 @@ from app.agent.nodes import _merge_unique_flights, route_after_agent, tools_node
 from app.agent.state import new_state
 
 PRICES_URL = "https://api.travelpayouts.com/v1/prices/cheap"
+
+# flight_search rejects a departure date in the past, so the date used to drive
+# a search has to move with the calendar. A literal here passes on the day it is
+# written and starts failing silently once it goes by -- which is exactly what
+# happened to the previous "2026-08-15".
+SEARCH_DATE = (date.today() + timedelta(days=30)).isoformat()
 
 CACHED_FLIGHTS = [
     {
@@ -93,7 +101,7 @@ def test_flight_search_fresh_call_populates_cache_and_hits_api(
     mocker.patch("app.tools.flight_search.get_travelpayouts_client", return_value=travelpayouts_test_client)
 
     state = new_state(
-        [_tool_call_message("flight_search_tool", {"origin": "TAS", "destination": "IST", "date": "2026-08-15"})]
+        [_tool_call_message("flight_search_tool", {"origin": "TAS", "destination": "IST", "date": SEARCH_DATE})]
     )
     updates = tools_node(state)
 
@@ -113,11 +121,11 @@ def test_flight_search_same_route_reuses_cache_no_api_call(mocker):
     )
 
     state = new_state([_tool_call_message("flight_search_tool", {
-        "origin": "TAS", "destination": "IST", "date": "2026-08-15", "max_stops": 0,
+        "origin": "TAS", "destination": "IST", "date": SEARCH_DATE, "max_stops": 0,
     })])
     state["last_search_raw"] = CACHED_FLIGHTS
     state["last_search_params"] = {
-        "origin": "TAS", "destination": "IST", "date": "2026-08-15",
+        "origin": "TAS", "destination": "IST", "date": SEARCH_DATE,
         "adults": 1, "children": 0, "cabin_class": None,
     }
     state["last_search_results"] = CACHED_FLIGHTS
@@ -138,11 +146,11 @@ def test_flight_search_different_route_forces_new_api_call(
     mocker.patch("app.tools.flight_search.get_travelpayouts_client", return_value=travelpayouts_test_client)
 
     state = new_state(
-        [_tool_call_message("flight_search_tool", {"origin": "TAS", "destination": "DXB", "date": "2026-08-15"})]
+        [_tool_call_message("flight_search_tool", {"origin": "TAS", "destination": "DXB", "date": SEARCH_DATE})]
     )
     state["last_search_raw"] = CACHED_FLIGHTS
     state["last_search_params"] = {
-        "origin": "TAS", "destination": "IST", "date": "2026-08-15",
+        "origin": "TAS", "destination": "IST", "date": SEARCH_DATE,
         "adults": 1, "children": 0, "cabin_class": None,
     }
     state["last_search_results"] = CACHED_FLIGHTS
@@ -184,7 +192,7 @@ def test_flight_search_same_route_different_date_accumulates_for_comparison(
     )
     state["last_search_raw"] = CACHED_FLIGHTS
     state["last_search_params"] = {
-        "origin": "TAS", "destination": "IST", "date": "2026-08-15",
+        "origin": "TAS", "destination": "IST", "date": SEARCH_DATE,
         "adults": 1, "children": 0, "cabin_class": None,
     }
     state["last_search_results"] = CACHED_FLIGHTS
