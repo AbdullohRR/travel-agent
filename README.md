@@ -2,7 +2,7 @@
 
 <img src="assets/hero-banner.svg" alt="AI Travel Agent" width="100%"/>
 
-# ✈️ AI Travel Agent
+# AI Travel Agent
 
 **Ask for a flight in plain language. Get real fares — never a guessed price.**
 
@@ -20,15 +20,13 @@ phrase the answer*; every airline, price, time, and airport code comes from a li
 
 ---
 
-## 🎬 Demo
+## Demo
 
 <div align="center">
 <img src="assets/demo.gif" alt="AI Travel Agent live demo — searching and comparing real flights" width="720"/>
 </div>
 
 *Real conversation, recorded against the actual running app — not a mockup.*
-
-**[Try it live →](#)** *(deploy link goes here once deployed — see Deploy section below)*
 
 ### Screenshot: proof it's a real tool call, not a hallucinated answer
 
@@ -141,66 +139,6 @@ travel-agent/
 - **Memory**: a `MemorySaver` checkpointer (see `app/memory`) persists `AgentState` per
   `thread_id`, which is how multi-turn refinement works without the UI re-sending full history.
 
-## API Usage & Setup
-
-### Travelpayouts / Aviasales Flight Data API (flight prices)
-
-1. Sign up free at <https://www.travelpayouts.com> (email + basic info — no approval process,
-   no credit card, no website required).
-2. Log in, go to your **Profile**, and copy the **API token** shown there — it's active
-   immediately.
-3. Put it in `.env`:
-   ```
-   TRAVELPAYOUTS_API_TOKEN=your_token_here
-   ```
-
-The `/v1/prices/cheap` endpoint returns the cheapest *cached* fare per route/date (economy,
-1 adult), refreshed periodically — not a live multi-airline GDS search. If a query returns no
-results, try a well-known route (major city pairs) a few weeks out; very obscure routes or
-same-day dates may have no cached fare yet.
-
-### Airport/city lookup
-
-Uses Travelpayouts' autocomplete endpoint (`autocomplete.travelpayouts.com/places2`), which
-needs **no API token at all** — nothing to configure.
-
-### Currency conversion (bonus)
-
-Uses [Frankfurter](https://frankfurter.dev) by default (no key needed, ECB rates — doesn't cover
-UZS). To convert to/from currencies Frankfurter lacks (like UZS), get a free key at
-<https://www.exchangerate-api.com> and set `EXCHANGE_RATE_API_KEY` in `.env`.
-
-## LLM Setup — two options
-
-### Option A — Local, no API key (Ollama)
-
-1. Install Ollama: <https://ollama.com/download>
-2. Pull a tool-calling-capable model:
-   ```
-   ollama pull qwen2.5:7b-instruct-q4_K_M   # recommended if your machine can handle it
-   ollama pull llama3.2:3b                    # lighter fallback
-   ```
-3. Make sure the server is running (`ollama serve`, or it starts automatically on most installs).
-4. Set the model in `.env` (or pick it live from the Streamlit sidebar):
-   ```
-   OLLAMA_MODEL=qwen2.5:7b-instruct-q4_K_M
-   ```
-
-### Option B — Cloud (Gemini), your own key
-
-No Ollama needed. Pick **"Gemini (cloud)"** in the sidebar's LLM Provider dropdown and paste a
-free key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) — used only for
-your session, never stored server-side. This is what makes a public deployment (see Deploy below)
-usable with zero setup on the deployer's end: tool-calling works identically to Ollama since both
-go through the same `.bind_tools()` LangChain interface (Gemini via its
-[OpenAI-compatible endpoint](https://ai.google.dev/gemini-api/docs/openai), reusing
-`langchain-openai`'s `ChatOpenAI` rather than adding a Gemini-specific package).
-
-The provider/key are threaded through LangGraph's per-invocation `RunnableConfig`
-(`configurable.llm_provider`/`api_key`), not global config mutation — so on a shared public
-deployment, two visitors who each pick Gemini and paste different keys never get their
-requests mixed up.
-
 ## Installation
 
 ```bash
@@ -214,6 +152,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # then fill in your Travelpayouts token
 ```
+
+You need one LLM backend (local Ollama needs no key) and a free Travelpayouts
+token for live fares. Both, plus optional Streamlit Cloud hosting, are covered
+in [Setup](docs/SETUP.md).
 
 ## Run Instructions
 
@@ -235,24 +177,6 @@ All tool logic and agent-node caching/filtering logic is covered with mocked HTT
 (via `responses`) — no live API keys or a running Ollama instance are needed to run the test
 suite.
 
-## ☁️ Deploy your own (Streamlit Community Cloud, free)
-
-1. Push this repo to GitHub.
-2. Go to [share.streamlit.io](https://share.streamlit.io), sign in with GitHub, click **New app**.
-3. Point it at this repo, branch `main`, main file path `app/ui/streamlit_app.py`.
-4. In **Advanced settings → Secrets**, add:
-   ```
-   LLM_PROVIDER = "gemini"
-   TRAVELPAYOUTS_API_TOKEN = "your_token_here"
-   ```
-   `LLM_PROVIDER` makes Gemini the default a visitor sees immediately (no
-   Ollama server exists on Streamlit Cloud, so without this they'd hit an
-   "Ollama unreachable" error before finding the provider dropdown).
-   `TRAVELPAYOUTS_API_TOKEN` is yours to configure since flight data needs
-   it regardless of LLM provider (free signup, see API Usage above).
-5. Deploy. Visitors immediately see the Gemini API key field and paste
-   their own free key — no LLM secret to configure on your end.
-
 ## Future Improvements
 
 - Persist conversations to disk/Postgres instead of in-memory checkpointing, so history survives
@@ -262,6 +186,12 @@ suite.
 - Travel checklist generator.
 - Docker Compose setup bundling the app + Ollama.
 - Streaming token-by-token responses in the chat UI.
+
+## Documentation
+
+| | |
+|---|---|
+| [Setup](docs/SETUP.md) | Travelpayouts API token, airport lookup, currency conversion, Ollama vs Gemini, and Streamlit Cloud hosting |
 
 ## License
 
