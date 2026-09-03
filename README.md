@@ -13,7 +13,7 @@ phrase the answer*; every airline, price, time, and airport code comes from a li
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![LangGraph](https://img.shields.io/badge/Agent-LangGraph-1C3C3C)](https://langchain-ai.github.io/langgraph/)
 [![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Tests](https://img.shields.io/badge/tests-53%20passing-brightgreen)](tests/)
+[![Tests](https://github.com/AbdullohRR/travel-agent/actions/workflows/tests.yml/badge.svg)](https://github.com/AbdullohRR/travel-agent/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
